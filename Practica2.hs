@@ -245,37 +245,26 @@ xor True True   = False
 xor False False = False
 xor _ _         = True
 
--- Si los dos son 1 seteamos a 0 y nos llevamos 1 de carry
--- si alguno es 1 queda asi
--- si ambos son 0 queda asi
-
-{-
-[01111] * [0111111111] 
--}
-
-binarySum :: NumBin -> NumBin -> NumBin
-binarySum xs ys = binarySumAux xs ys False
+-- binarySum :: l1 -> l2 -> carryFlag
+-- La carry flag determina si el ultimo carry alarga la lista o no
+-- Si esta en False se ignora, si esta en True el carry se mantiene
+binarySum :: NumBin -> NumBin -> Bool -> NumBin
+binarySum xs ys carryFlag = binarySumAux xs ys False carryFlag 
 
 
-binarySumAux :: NumBin -> NumBin -> Bool -> NumBin
-binarySumAux   []     []     b             = b : []  
-binarySumAux   xs     []     False         = xs
-binarySumAux   []     ys     False         = ys
-binarySumAux (x:xs)   []     True          = xor True x : binarySumAux xs [] False
-binarySumAux   []   (y:ys)   True          = xor True y : binarySumAux [] ys False
-binarySumAux (x:xs) (y:ys)   False         = let b = not (xor x y) in 
-                                                if b && x then False : binarySumAux xs ys True
-                                                          else True  : binarySumAux xs ys False
-binarySumAux (x:xs) (y:ys)   True          = let b = not (xor x y) in -- True si x = y
-                                                if b && x then True : binarySumAux xs ys True
-                                                          else if b then True  : binarySumAux xs ys False
-                                                                    else False : binarySumAux xs ys True 
-
-
-l1 = [True, True] -- 3
-l2 = [False, True] -- 2
---l = binarySum l1 l2
-
+binarySumAux :: NumBin -> NumBin -> Bool -> Bool -> NumBin
+binarySumAux [] [] False _                 = []
+binarySumAux [] [] True  False             = []
+binarySumAux [] [] True  True              = [True]
+binarySumAux x  [] True  cf                = binarySumAux x [True]  False cf
+binarySumAux [] y  True  cf                = binarySumAux y [True]  False cf
+binarySumAux x  [] False cf                = binarySumAux x [False] False cf
+binarySumAux []  y False cf                = binarySumAux [False] y False cf  
+binarySumAux (x:xs) (y:ys) carry cf = digito : binarySumAux xs ys carryFinal cf
+                                where digito     = (x && y && carry) || (xor x (xor y carry))
+                                      carryFinal = ((x && y) || (x && carry) || (y && carry))                                       
+-- el carry tiene que estar prendido si hay 2 o 3 Trues
+-- el digito tiene que quedar en 1 si hay 1 o 3 Trues
 
 
 
@@ -291,7 +280,6 @@ div2 :: NumBin -> NumBin
 div2 [] = []
 div2 x  = tail x
 
-
 bitWiseOr :: NumBin -> Bool
 bitWiseOr [] = False
 bitWiseOr (nb:ns) = nb || bitWiseOr ns  
@@ -301,24 +289,58 @@ prodBin x y = prodBinAux x y []
 
 prodBinAux :: NumBin -> NumBin -> NumBin -> NumBin
 prodBinAux x y res | not (bitWiseOr x) = res 
-                   | esImpar x   = prodBinAux (div2 x) (prod2 y) (binarySum res y)
+                   | esImpar x   = prodBinAux (div2 x) (prod2 y) (binarySum res y True)
                    | otherwise   = prodBinAux (div2 x) (prod2 y) res
 
 
 
+-- c) cociente y resto de la division por dos
 
-{-
+normalize :: NumBin -> NumBin -> (NumBin,NumBin)
+normalize x y   | cond == 0 = (x,y)  
+                | cond > 0  = (x, addZeros y cond)
+                | cond < 0  = (addZeros x (-cond), y)
+                where cond  = (length x - length y) 
 
-prodBinAuxAux :: NumBin -> NumBin -> Bool -> NumBin
-prodBinAuxAux [] [] b = b : []
-prodBinAuxAux xs [] False = xs
-prodBinAuxAux [] ys False = ys
-prodBinAuxAux (x:xs) [] True = if x && True then False : prodBinAuxAux xs [] True
-                                                 else True : prodBinAuxAux xs [] False
-prodBinAuxAux [] (y:ys) True = prodBinAuxAux (y:ys) [] True
-prodBinAuxAux (x:xs) (y:ys) False = if x && y then False : prodBinAuxAux xs ys True
-                                           else False : prodBinAuxAux xs ys False
-prodBinAuxAux (x:xs) (y:ys) True = if x && y then True : prodBinAuxAux xs ys True
-                                          else True : prodBinAuxAux xs ys False
--}
-                                        
+addZeros :: NumBin -> Int -> NumBin
+addZeros b 0 = b 
+addZeros b n = addZeros (b ++ [False]) (n - 1) 
+
+comp2 :: NumBin -> NumBin
+comp2 x = comp2Aux x False
+
+comp2Aux :: NumBin -> Bool -> NumBin
+comp2Aux []     _ = []
+comp2Aux (x:xs) False = if x then x : comp2Aux xs True
+                             else x : comp2Aux xs False
+comp2Aux (x:xs) True  =       not x : comp2Aux xs True
+
+
+sign :: Int -> Int
+sign x | x < 0  = -1
+       | x == 0 = 0
+       | x > 0  = 1
+
+-- 1 si b1 > b2, -1 caso contrario y 0 si son iguales
+numBinCompare :: NumBin -> NumBin -> Int
+numBinCompare x y | (lx > ly && last x) = 1
+                  | (lx < ly && last y) = -1
+                  | otherwise = sign (numBinCompareSameLength (reverse x) (reverse y))
+                  where lx = length x
+                  where ly = length y
+
+numBinCompareSameLength :: NumBin -> NumBin -> Int
+numBinCompareSameLength [] [] = 0
+numBinCompareSameLength x y   = if head x == head y then numBinCompareSameLength (tail x) (tail y)
+                                          else if head x && not (head y) then 1
+                                                                         else -1  
+
+divNumBin :: NumBin -> NumBin -> (NumBin, NumBin) -- Cociente y Resto
+divNumBin x y = let n = normalize x y in divNumBinAux (fst n) (snd n) [False]
+divNumBinAux :: NumBin -> NumBin -> NumBin -> (NumBin, NumBin)
+divNumBinAux x [] coc              = (coc, x)
+divNumBinAux x y coc  | cond == 0  = (binarySum coc [True] True, [False])
+                      | cond == 1  = divNumBinAux divid y (binarySum coc [True] True)
+                      | cond == -1 = divNumBinAux x [] coc
+                      where cond   = numBinCompare x y
+                            divid  = (binarySum x (comp2 y) False)
