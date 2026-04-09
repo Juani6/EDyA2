@@ -327,7 +327,7 @@ numBinCompare x y | (lx > ly && last x) = 1
                   | (lx < ly && last y) = -1
                   | otherwise = sign (numBinCompareSameLength (reverse x) (reverse y))
                   where lx = length x
-                  where ly = length y
+                        ly = length y
 
 numBinCompareSameLength :: NumBin -> NumBin -> Int
 numBinCompareSameLength [] [] = 0
@@ -344,3 +344,41 @@ divNumBinAux x y coc  | cond == 0  = (binarySum coc [True] True, [False])
                       | cond == -1 = divNumBinAux x [] coc
                       where cond   = numBinCompare x y
                             divid  = (binarySum x (comp2 y) False)
+
+
+operator :: Char -> Integer -> Integer -> Integer
+operator '+' = (+)
+operator '-' = (-)
+operator '*' = (*)
+operator '/' = div
+operator _   = error "No es un operador"
+
+isOperator :: Char -> Bool
+isOperator '+' = True
+isOperator '-' = True
+isOperator '*' = True
+isOperator '/' = True
+isOperator _   = False
+
+isDigit :: Char -> Bool
+isDigit c = c >= '0' && c <= '9'
+
+isSpace :: Char -> Bool
+isSpace c = c == ' '
+
+np :: String -> Integer
+np xs = let (r, resto) = npAux xs
+        in if null resto
+           then r
+           else error ("Se encontro basura: " ++ resto)
+
+
+npAux :: String -> (Integer, String)
+npAux [] = error "Nada"
+npAux (x:xs) | isOperator x = let (x',xs') = npAux xs
+                                  (y, ys) = npAux xs'
+                                  in ((operator x) x' y, ys)
+             | isDigit x    = let (ns, xs') = span isDigit (x:xs)
+                              in (read ns, xs')
+             | isSpace x    = npAux xs
+             | otherwise    = error ("Error.")
