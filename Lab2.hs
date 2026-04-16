@@ -83,9 +83,11 @@ data GTree a = EG | NodeG a [GTree a]
 data BinTree a = EB | NodeB (BinTree a) a (BinTree a)
   deriving (Show)
 
+{-
 t :: GTree Char
 t = (NodeG 'A' [ (NodeG 'B' [(NodeG 'F' [(NodeG 'K' [EG]),(NodeG 'L' [EG])]),(NodeG 'G' [EG]),
     (NodeG 'H' [EG])]),(NodeG 'C' [EG]),(NodeG 'D' [EG]),(NodeG 'E' [(NodeG 'I' [(NodeG 'M' [EG])]),(NodeG 'J' [EG])])])
+-}
 
 g2bt :: GTree a -> BinTree a
 g2bt EG             = EB
@@ -114,14 +116,44 @@ g2btBrothers ((NodeG a xs):ys) = (NodeB (g2btBrothers xs) a (g2btBrothers ys))  
       cantidad de elementos posibles para este nivel y en el nivel tercer hay 3 elementos siendo la cantidad máxima 4.
    -}
 
+t :: BinTree Int
+t = (NodeB (NodeB EB 2 (NodeB EB 4 EB)) 1 (NodeB (NodeB EB 5 EB) 3 (NodeB EB 6 EB)))
+
+
 dcn :: BinTree a -> [a]
-dcn = undefined
+dcn EB = []
+dcn nB = xss !! n
+  where xss = (dcnList nB)
+        n = dcnAux xss 0  
+
+
+dcnAux :: [[a]] -> Int -> Int
+dcnAux [[]] n      = n-1
+dcnAux (xs:xss) i  = if isComplete xs i then dcnAux xss (i+1) else (i-1)
+
+dcnList :: BinTree a -> [[a]]
+dcnList EB              = [[]]
+dcnList (NodeB EB a EB) = [[a]]
+dcnList (NodeB l a r)   = [a] : (map (uncurry (++)) (zip (dcnList l) (dcnList r)))
+
+
+isComplete :: [a] -> Int -> Bool
+isComplete [] _ = False
+isComplete xs h = length xs == (2^h)
+
+{-
+      a
+    /   \
+   b     c
+
+-}
 
 {- b) maxn, que dado un árbol devuelva la profundidad del nivel completo
       más profundo. Por ejemplo, maxn t = 2   -}
 
 maxn :: BinTree a -> Int
-maxn = undefined
+maxn EB = 0
+maxn bT = (dcnAux (dcnList bT) 0 + 1)
 
 {- c) podar, que elimine todas las ramas necesarias para transformar
       el árbol en un árbol completo con la máxima altura posible. 
@@ -130,7 +162,12 @@ maxn = undefined
 -}
 
 podar :: BinTree a -> BinTree a
-podar = undefined
+podar EB = EB
+podar bT = podarAux bT (maxn bT - 1)
+
+podarAux :: BinTree a -> Int -> BinTree a
+podarAux (NodeB l x r) 0 = (NodeB EB x EB)
+podarAux (NodeB l x r) h  = (NodeB (podarAux l (h-1)) x (podarAux r (h-1)))
 
 
 
