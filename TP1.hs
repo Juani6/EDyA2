@@ -19,8 +19,8 @@ class Punto p where
   dist' d p q = ((coord d p) - (coord d q)) ^ 2 + dist' (d-1) p q
 -- 1b
   
-newtype Punto2d = P2d (Double, Double) deriving(Show)
-newtype Punto3d = P3d (Double, Double, Double) deriving(Show)
+newtype Punto2d = P2d (Double, Double) deriving(Eq,Show)
+newtype Punto3d = P3d (Double, Double, Double) deriving(Eq,Show)
 
 instance Punto Punto2d where
   dimension (P2d p) = 2
@@ -36,11 +36,8 @@ instance Punto Punto3d where
   coord _ _ = error("Fuera de rango")
 
 -- 2
-inorder :: Punto p => NdTree p -> [p]
-inorder Empty = []
-inorder (Node l dato r d) = inorder l ++ [dato] ++ inorder r  
-
 fromList :: Punto p => [p] -> NdTree p
+fromList []     = Empty
 fromList (x:xs) = fromList' 0 (dimension x) (x:xs) 
 
 fromList' :: Punto p => Int -> Int -> [p] -> NdTree p
@@ -49,7 +46,7 @@ fromList' level dim xs = let xs'  = ordenarPuntos level xs -- Ordenamos la lista
                              med  = mediana xs'            -- Calculamos la mediana
                              n    = div (length xs) 2      -- Calculamos su posicion
                              xs'' = drop n xs'             -- Tomamos el lado derecho de la lista
-                             n'   = medianaCorte n med xs'' - 1 -- Obtenemos el indice de la ultima ocurrencia del punto de la mediana
+                             n'   = medianaCorte n med xs'' -- Obtenemos el indice de la ultima ocurrencia del punto de la mediana
                              r    = drop (n' - n) xs''     -- Dropeamos los elementos faltantes para llegar a la ultima ocurrencia
                              l    = take (n' - 1) xs'      -- Tomamos la lista de elementos a la izquierda del ultimo elemento igual a la mediana
                              nl   = (mod (level+1) dim)    -- Nuevo nivel
@@ -81,41 +78,63 @@ medianaCorte j _ []     = j
 medianaCorte j p (x:xs) = if areEqual p x then medianaCorte (j + 1) p xs
                                           else j
 
+-- ej 3
+insertar :: Punto p => p -> NdTree p -> NdTree p
+insertar p raiz = insertar' 0 p raiz
+
+insertar' :: Punto p => Int -> p -> NdTree p -> NdTree p
+insertar' lvl p Empty                       = (Node Empty p Empty lvl)
+insertar' _ p (Node l d r level)            = let newlvl = mod (level + 1) (dimension d) 
+                                              in if coord level p <= coord level d 
+                                                 then (Node (insertar' newlvl p l) d r level) 
+                                                 else (Node l d (insertar' newlvl p r) level)
 
 
-p1 :: Punto3d
-p2 :: Punto3d
-p3 :: Punto3d
-p4 :: Punto3d
+-- ej 4 
+eliminar :: (Eq p, Punto p) => p -> NdTree p -> NdTree p
+eliminar p Empty                                              = Empty
+eliminar p raiz@(Node l d r lvl) | areEqual p d               = eliminar' p raiz 
+                                 | coord lvl p <= coord lvl d = (Node (eliminar p l) d r lvl)
+                                 | otherwise                  = (Node l d (eliminar p r) lvl) -- coord lvl p > coord lvl d
 
-p1 = P3d (1.0,2.0,3.0)
-p2 = P3d (1.0,2.0,3.0)
-p3 = P3d (1.0,2.0,3.2)
-p4 = P3d (2.0, 3.0, 4.0)
+eliminar' :: (Eq p, Punto p) => p -> NdTree p -> NdTree p
+eliminar' p (Node Empty d Empty lvl) = Empty                  -- Este caso directamente elimina el nodo
+eliminar' p (Node l d Empty lvl)     = let d' = findMin lvl l -- Tomamos el nodo mas chico de l, lo hacemos raiz y l pasa a ser el arbol derecho
+                                       in (Node Empty d' (eliminar d' l) lvl)
+eliminar' p (Node l d r lvl)         = let d' = findMin lvl r 
+                                       in (Node l d' (eliminar d' r) lvl)
 
-puntos :: [Punto2d] 
-puntos = [(P2d (1.0, 2.0)), (P2d(3.5, 4.1)), (P2d(0.5, 9.2)), (P2d(7.3, 1.1)), (P2d(5.0, 5.0)),
-          (P2d(2.2, 8.8)), (P2d(6.6, 3.3)), (P2d(4.4, 7.7)), (P2d(9.1, 0.2)), (P2d(8.0, 6.5))]
 
-puntosLimite2d :: [Punto2d]
-puntosLimite2d =
-  [ P2d (5.0, 5.0)   -- duplicado exacto de la raíz
-  , P2d (5.0, 1.0)   -- sobre el hiperplano x=5.0 (nivel 0 corta en x)
-  , P2d (5.0, 9.0)   -- ídem, distinta y
-  , P2d (3.0, 4.1)   -- sobre hiperplano y=4.1 (nivel 1 corta en y)
-  , P2d (7.0, 4.1)   -- ídem, distinta x
-  , P2d (4.4, 4.1)   -- sobre hiperplano y=4.1 del nodo (4.4,7.7)
-  , P2d (5.0, 5.0)   -- segundo duplicado exacto
-  , P2d (5.0, 5.0)
-  ]
+findMin :: (Eq p, Punto p) => Int -> NdTree p -> p
+findMin k Empty                                     = error("No deberia llegar aca") -- Caso de prueba
+findMin k (Node Empty d Empty lvl)                  = d                              -- Si es una hoja devuelvo
+findMin k (Node l d r lvl) | lvl == k && l == Empty = d                              -- Si estoy en el eje y el de la izquierda es vacio devuelvo directamente d (el de la derecha es mayor)
+                           | lvl == k || r == Empty = min2Puntos k d (findMin k l)   -- si el nivel es k o el de la derecha es vacio comparo el valor con el mas chico de la izquierda
+                           | l == Empty             = min2Puntos k d (findMin k r)   -- si l es vacio chequeo con el derecho
+                           | otherwise              = let dl = findMin k l
+                                                          dr = findMin k r
+                                                      in min3Puntos k dl dr d        -- Cualquier otro caso chequeamos cual es el minimo de los 3 posibles
+min2Puntos :: Punto a => Int -> a -> a -> a
+min2Puntos k x y = let x' = coord k x
+                       y' = coord k y 
+                   in if x' <= y' then x else y
 
-puntos3d :: [Punto3d]
-puntos3d =
-  [ P3d (5.0, 3.0, 2.0)   -- raíz (nivel 0, corta en x=5.0)
-  , P3d (5.0, 1.0, 8.0)   -- sobre hiperplano x=5.0  ← límite nivel 0
-  , P3d (2.0, 3.0, 6.0)   -- sobre hiperplano y=3.0  ← límite nivel 1
-  , P3d (7.0, 3.0, 1.0)   -- ídem, lado derecho
-  , P3d (3.0, 1.0, 2.0)   -- sobre hiperplano z=2.0  ← límite nivel 2
-  , P3d (5.0, 3.0, 2.0)   -- duplicado exacto de la raíz
-  , P3d (5.0, 3.0, 2.0)   -- tercer duplicado
-  ]
+min3Puntos :: Punto a => Int -> a -> a -> a -> a
+min3Puntos k x y z = min2Puntos k x (min2Puntos k y z)
+
+-- ej5 
+type Rect = (Punto2d, Punto2d)
+
+inRegion :: Punto2d -> Rect -> Bool
+inRegion (P2d (x, y)) ( (P2d (px,py)) , (P2d (qx,qy)) ) = px <= x && qx >= x && py <= y && qy >= y 
+
+ortogonalSearch :: NdTree Punto2d -> Rect -> [Punto2d]
+ortogonalSearch Empty rect                                                         = []
+ortogonalSearch n@(Node l d r lvl) rect@(p,q) | lvl == 0 && coord 0 d  < coord 0 p = ortogonalSearch r rect -- si la x del nodo es mas chica que la recta izquierda
+                                              | lvl == 1 && coord 1 d  < coord 1 p = ortogonalSearch r rect -- si la y del nodo es mas chica que la recta inferior
+                                              | lvl == 0 && coord 0 d  > coord 0 q = ortogonalSearch l rect -- si la x del nodo excede el maximo
+                                              | lvl == 1 && coord 1 d  > coord 1 q = ortogonalSearch l rect -- si la y del punto excede el maximo
+                                              | otherwise                          = [d | inRegion d rect] 
+                                                                                     ++ ortogonalSearch l rect 
+                                                                                     ++ ortogonalSearch r rect
+
