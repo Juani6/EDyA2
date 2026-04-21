@@ -42,14 +42,14 @@ fromList (x:xs) = fromList' 0 (dimension x) (x:xs)
 
 fromList' :: Punto p => Int -> Int -> [p] -> NdTree p
 fromList' _  _ []      = Empty
-fromList' level dim xs = let xs'  = ordenarPuntos level xs -- Ordenamos la lista
-                             med  = mediana xs'            -- Calculamos la mediana
-                             n    = div (length xs) 2      -- Calculamos su posicion
-                             xs'' = drop n xs'             -- Tomamos el lado derecho de la lista
+fromList' level dim xs = let xs'  = ordenarPuntos level xs  -- Ordenamos la lista
+                             med  = mediana xs'             -- Calculamos la mediana
+                             n    = div (length xs) 2       -- Calculamos su posicion
+                             xs'' = drop n xs'              -- Tomamos el lado derecho de la lista
                              n'   = medianaCorte n med xs'' -- Obtenemos el indice de la ultima ocurrencia del punto de la mediana
-                             r    = drop (n' - n) xs''     -- Dropeamos los elementos faltantes para llegar a la ultima ocurrencia
-                             l    = take (n' - 1) xs'      -- Tomamos la lista de elementos a la izquierda del ultimo elemento igual a la mediana
-                             nl   = (mod (level+1) dim)    -- Nuevo nivel
+                             r    = drop (n' - n) xs''      -- Dropeamos los elementos faltantes para llegar a la ultima ocurrencia
+                             l    = take (n' - 1) xs'       -- Tomamos la lista de elementos a la izquierda del ultimo elemento igual a la mediana
+                             nl   = (mod (level+1) dim)     -- Nuevo nivel
                              in Node (fromList' nl dim l) med (fromList' nl dim r) level
 
 ordenarPuntos :: Punto p => Int -> [p] -> [p]
@@ -61,7 +61,6 @@ orden dim p q | dim == dimension p        = EQ
               | coord dim p > coord dim q = GT
               | coord dim p < coord dim q = LT
               | otherwise                 = orden (dim+1) p q
-
 
 areEqual :: Punto p => p -> p -> Bool
 areEqual p q = areEqual' (dimension p - 1) p q 
@@ -89,7 +88,6 @@ insertar' _ p (Node l d r level)            = let newlvl = mod (level + 1) (dime
                                                  then (Node (insertar' newlvl p l) d r level) 
                                                  else (Node l d (insertar' newlvl p r) level)
 
-
 -- ej 4 
 eliminar :: (Eq p, Punto p) => p -> NdTree p -> NdTree p
 eliminar p Empty                                              = Empty
@@ -103,7 +101,6 @@ eliminar' p (Node l d Empty lvl)     = let d' = findMin lvl l -- Tomamos el nodo
                                        in (Node Empty d' (eliminar d' l) lvl)
 eliminar' p (Node l d r lvl)         = let d' = findMin lvl r 
                                        in (Node l d' (eliminar d' r) lvl)
-
 
 findMin :: (Eq p, Punto p) => Int -> NdTree p -> p
 findMin k Empty                                     = error("No deberia llegar aca") -- Caso de prueba
@@ -137,4 +134,3 @@ ortogonalSearch n@(Node l d r lvl) rect@(p,q) | lvl == 0 && coord 0 d  < coord 0
                                               | otherwise                          = [d | inRegion d rect] 
                                                                                      ++ ortogonalSearch l rect 
                                                                                      ++ ortogonalSearch r rect
-
