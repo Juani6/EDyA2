@@ -116,10 +116,9 @@ member :: Ord a => a -> BST a -> Bool
 member x r = member' x x r
 
 member' :: Ord a => a -> a -> BST a -> Bool
-member' x c Leaf                         = if x == c then True else False 
+member' x c Leaf                      = if x == c then True else False 
 member' x c (BNode l d r) | x < d     = member' x c l
-                          | x > d     = member' x d r
-                          | otherwise = True
+                          | otherwise = member' x d r
 
 
 data Color = R | B deriving(Show)
@@ -129,10 +128,9 @@ memberRBT :: Ord a => a -> RBT a -> Bool
 memberRBT x r = memberRBT' x x r
 
 memberRBT' :: Ord a => a -> a -> RBT a -> Bool
-memberRBT' x c E                      = if x == c then True else False 
-memberRBT' x c (T _ l d r) | x < d    = memberRBT' x c l
-                           | x > d     = memberRBT' x d r
-                           | otherwise = True
+memberRBT' x c E                       = if x == c then True else False 
+memberRBT' x c (T _ l d r) | x < d     = memberRBT' x c l
+                           | otherwise = memberRBT' x d r
 
 balanceL :: Color -> RBT a -> a -> RBT a -> RBT a
 balanceL B (T R (T R a x b) y c) z d = T R (T B a x b) y (T B c z d)
