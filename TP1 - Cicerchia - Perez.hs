@@ -1,3 +1,5 @@
+-- Trabajo practica 1 - Cicerchia - Perez de Urrecho
+
 module TP1 where
 
 import Data.List
