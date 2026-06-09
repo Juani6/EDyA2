@@ -27,8 +27,8 @@ instance Seq [] where
 
   showtS []  = EMPTY
   showtS [x] = ELT x
-  showtS s   = let mid = div (lengthS s) 2
-                 (l,r) = takeS s mid ||| dropS s mid
+  showtS s   = let mid   = div (lengthS s) 2
+                   (l,r) = takeS s mid ||| dropS s mid
                in NODE l r 
 
   showlS []     = NIL
@@ -36,33 +36,33 @@ instance Seq [] where
 
   joinS []  = []
   joinS [x] = x
-  joinS s   = let mid = div (lengthS s) 2
-                (l,r) = takeS s mid ||| dropS s mid
+  joinS s   = let mid   = div (lengthS s) 2
+                  (l,r) = takeS s mid ||| dropS s mid
               in joinS l ++ joinS r
 
-  reduceS f e []              = e 
-  reduceS f e [x]             = f e x
-  reduceS f e s = let pp      = floor (logBase 2 (fromIntegral (lengthS s))) 
-                      (l,r)   = takeS s pp ||| dropS s pp
-                      (l',r') = reduceS f e l ||| reduceS f e r
-                  in f l' r'
+  reduceS f e [] = e 
+  reduceS f e s  = f e (red s)
+                 where red [x] = x
+                       red s   = red (contraer f e s)
 
   scanS f e []  = ([], e)
   scanS f e [x] = ([e], f e x)
-  scanS f e s   = let c         = contraer s
+  scanS f e s   = let c         = contraer f e s
                       (s', res) = scanS f e c
                       s''       = tabulateS (\i -> if even i 
                                                    then nthS s' (div i 2) 
                                                    else f (nthS s' (div i 2))  (nthS s (i-1))) (lengthS s)
                   in (s'', res)
-                  where contraer []         = []
-                        contraer [x]        = [x]
-                        contraer (x:xs:xss) = let (l,r) = (f x xs) ||| (contraer xss)
-                                              in l : r 
   fromList s = s
 
 fview :: String -> String -> String
 fview s t = "(" ++ s ++ "+" ++ t ++ ")"
+
+contraer :: (a -> a -> a) -> a -> [a] -> [a]
+contraer f e []         = []
+contraer f e [x]        = [x]
+contraer f e (x:xs:xss) = let (l,r) = (f x xs) ||| (contraer f e xss)
+                          in l : r
 
 -- ghci> scanS fview "E" ["x1","x2","x3"]
 -- (["E","(E+x1)","(E+(x1+x2))"],"(E+((x1+x2)+x3))")
