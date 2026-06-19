@@ -10,7 +10,7 @@
 -}
 
 
-module Tp2_2026.Src.Par ((|||)) where
+module Par ((|||)) where
 
 import Control.Parallel
 

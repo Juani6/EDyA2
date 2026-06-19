@@ -1,6 +1,6 @@
 {- Implementación del TAD secuencia -}
 
-module Tp2_2026.Src.Seq where
+module Seq where
 
 class Seq s where
    emptyS     :: s a

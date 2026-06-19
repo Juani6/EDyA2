@@ -1,7 +1,8 @@
-module Tp2_2026.Src.ListSeq where
+--module Tp2_2026.Src.ListSeq where
+module ListSeq where
 
-import Tp2_2026.Src.Par
-import Tp2_2026.Src.Seq
+import Par
+import Seq 
 
 instance Seq [] where
 
@@ -45,15 +46,40 @@ instance Seq [] where
                  where red [x] = x
                        red s   = red (contraer f e s)
 
-  scanS f e []  = ([], e)
-  scanS f e [x] = ([e], f e x)
-  scanS f e s   = let c         = contraer f e s
-                      (s', res) = scanS f e c
-                      s''       = tabulateS (\i -> if even i 
-                                                   then nthS s' (div i 2) 
-                                                   else f (nthS s' (div i 2))  (nthS s (i-1))) (lengthS s)
-                  in (s'', res)
+
+  scanS op e s = case s of
+    []  -> ([], e)
+    [x] -> ([e], e `op` x)
+    _   ->
+      let
+        (cont, sLen) = contract s [] op
+        (s', red)    = scanS op e cont
+        r            = expand s s' 0 sLen op
+      in (r, red)
+  
   fromList s = s
+
+contract :: [a] -> [a] -> (a -> a -> a) -> ([a], Int)
+contract []     ys _  = (ys, 0)
+contract (x:xs) [] op =
+  let (rest, n) = contract xs [x] op
+  in (rest, n + 1)
+contract (x:xs) (y:ys) op =
+  let
+    ((rest, n), res) = contract xs ys op ||| (y `op` x)
+  in
+    (res : rest, n + 1)
+
+expand :: [a] -> [a] -> Int -> Int -> (a -> a -> a) -> [a]
+expand _ [] _ _ _ = []
+expand st@(x:s) st'@(y:s') i n op
+    | i == n         = []
+    | i `mod` 2 == 0 = y : expand st st' (i + 1) n op
+    | otherwise      =
+        let
+          (res, rest) = (y `op` x) ||| expand (dropS s 1) s' (i + 1) n op
+        in
+          res : rest
 
 fview :: String -> String -> String
 fview s t = "(" ++ s ++ "+" ++ t ++ ")"
