@@ -226,7 +226,7 @@ filterT p E         = E
 filterT p (N l x r) = let (l',r') = filterT p l ||| filterT p r
                       in if p x then (N l' x r') else combinar l' r'
 
--- Wfilter(n) = 1 + filter(n/2) + filter(n/2) + O(h-1)
+-- Wfilter(h) = 1 + 2 filter(h-1) + O(h-1)
 
 quickSort :: T Int -> T Int
 quickSort E = E
