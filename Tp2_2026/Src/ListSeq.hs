@@ -73,11 +73,5 @@ expand s1@(x:xs) s2@(y:ys) i n f  | i == n       = []
 fview :: String -> String -> String
 fview s t = "(" ++ s ++ "+" ++ t ++ ")"
 
-contraer :: (a -> a -> a) -> a -> [a] -> [a]
-contraer f e []         = []
-contraer f e [x]        = [x]
-contraer f e (x:xs:xss) = let (l,r) = (f x xs) ||| (contraer f e xss)
-                          in l : r
-
 -- ghci> scanS fview "E" ["x1","x2","x3"]
 -- (["E","(E+x1)","(E+(x1+x2))"],"(E+((x1+x2)+x3))")
