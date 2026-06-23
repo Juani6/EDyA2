@@ -36,10 +36,10 @@ testReduceSumSeq2 =
   TestCase $ assertEqual "Error reducing sequence of length 2"
                          6 (reduceS (+) 0 s2)
 
--- reduceS no conmutativo (resta)
+-- reduceS no asociativo (resta)
 testReduceSubSeq :: Test
 testReduceSubSeq =
-  TestCase $ assertEqual "Error reducing with non-commutative op"
+  TestCase $ assertEqual "Error reducing with non-asociative op"
                          (0 - ((6 - 3) - 4)) (reduceS (-) 0 s3)
 
 -- scanS con longitud 1

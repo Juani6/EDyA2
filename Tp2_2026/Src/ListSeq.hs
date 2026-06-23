@@ -44,42 +44,31 @@ instance Seq [] where
   reduceS f e [] = e 
   reduceS f e s  = f e (red s)
                  where red [x] = x
-                       red s   = red (contraer f e s)
+                       red s   = let (con, _) = contract s [] f
+                                 in red con
 
 
-  scanS op e s = case s of
-    []  -> ([], e)
-    [x] -> ([e], e `op` x)
-    _   ->
-      let
-        (cont, sLen) = contract s [] op
-        (s', red)    = scanS op e cont
-        r            = expand s s' 0 sLen op
-      in (r, red)
-  
+  scanS f e s |  lengthS s == 0 = ([], e)
+              |  lengthS s == 1 = ([e], f e (nthS s 0))
+              |  otherwise      = let (cont, sLen) = contract s [] f
+                                      (s', red)    = scanS f e cont
+                                      r            = expand s s' 0 sLen f
+                                  in (r, red)
   fromList s = s
 
 contract :: [a] -> [a] -> (a -> a -> a) -> ([a], Int)
-contract []     ys _  = (ys, 0)
-contract (x:xs) [] op =
-  let (rest, n) = contract xs [x] op
-  in (rest, n + 1)
-contract (x:xs) (y:ys) op =
-  let
-    ((rest, n), res) = contract xs ys op ||| (y `op` x)
-  in
-    (res : rest, n + 1)
+contract []     ys _     = (ys, 0)
+contract (x:xs) [] f     = let (rest, n) = contract xs [x] f
+                           in (rest, n + 1)
+contract (x:xs) (y:ys) f = let ((rest, n), res) = contract xs ys f ||| (f y x)
+                           in (res : rest, n + 1)
 
 expand :: [a] -> [a] -> Int -> Int -> (a -> a -> a) -> [a]
 expand _ [] _ _ _ = []
-expand st@(x:s) st'@(y:s') i n op
-    | i == n         = []
-    | i `mod` 2 == 0 = y : expand st st' (i + 1) n op
-    | otherwise      =
-        let
-          (res, rest) = (y `op` x) ||| expand (dropS s 1) s' (i + 1) n op
-        in
-          res : rest
+expand s1@(x:xs) s2@(y:ys) i n f  | i == n       = []
+                                  | mod i 2 == 0 = y : expand s1 s2 (i + 1) n f
+                                  | otherwise    = let (res, rest) = (f y x) ||| expand (dropS xs 1) ys (i + 1) n f
+                                                   in res : rest
 
 fview :: String -> String -> String
 fview s t = "(" ++ s ++ "+" ++ t ++ ")"
